@@ -34,4 +34,8 @@ Werkzeug          3.1.3
 wrapt             1.17.2
 wsproto           1.2.0
 
+redis这个东西在这里跟“限制每分钟连接请求的限制”相关，防止爆破设备码
+server需安装pip install redis
+本机需安装redis，配好环境变量后，命令行redis-server启动
+
 请尽量在虚拟环境中运行，pycharm不要直接点那个三角形运行，在底下的命令行运行python app.py

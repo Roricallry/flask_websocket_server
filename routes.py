@@ -1,6 +1,6 @@
+import time
 from flask import Flask, render_template, request, jsonify, render_template_string, flash, session, redirect, url_for
 from flask_socketio import SocketIO, send, emit, disconnect
-
 from flask import request, render_template, redirect, url_for, flash, session
 from models import db, Device, Admin
 from config import Config
@@ -19,19 +19,18 @@ import base64
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 
+
 def register_routes(app,socketio,mail,r, limiter):
     @app.route('/')
     def index():
         if 'admin' not in session:
             return redirect(url_for('login'))
 
-        # 如果设置了 FLASH_FLAG，就使用 flash 发送一次
-        flash_data = app.config.pop('FLASH_FLAG', None)
-        if flash_data:
-            flash(flash_data['message'], flash_data['category'])
+        messages = app.config.pop('FLASH_MESSAGES', [])  # 清空并取出所有消息
+        for msg in messages:
+            flash(msg['message'], msg['category'])
 
         devices = Device.query.filter(Device.certificate.isnot(None)).all()
-
         return render_template('index.html', devices=devices)
 
     @app.route('/login', methods=['GET', 'POST'])
@@ -312,25 +311,71 @@ def register_routes(app,socketio,mail,r, limiter):
 
     @socketio.on('chain_response')
     def handle_chain_response(data):
-        print(f"收到链式计算结果：{data}")
-
+        if 'FLASH_MESSAGES' not in app.config:
+            app.config['FLASH_MESSAGES'] = []
         # 如果是最终处理结果（来自第一个设备）
+        if 'final_result' not in data:
+            print(f"收到链式计算中间结果：{data}")
+            data_str = str(data)  # 把字典转换成字符串
+            short_data_str = data_str[:80]  # 截取前面一部分
+            timestamp = data.get('timestamp')
+            if timestamp:
+                readable_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                readable_time = '无时间信息'
+
+            # 构造新消息
+            new_message = {
+                'message': f"收到链式计算中间结果为：{short_data_str}\n时间：{readable_time}",
+                'category': 'success',
+            }
+
+            # 追加到消息列表中
+            app.config['FLASH_MESSAGES'].append(new_message)
+
         if 'final_result' in data:
             encrypted_final_result = data.get('final_result')
             try:
                 decrypted_value = decrypt_final_result(encrypted_final_result, SERVER_PRIVATE_KEY)
                 print(f"✅ 最终链式结果解密成功：{decrypted_value:.2f}")
+
                 # 保存 flash 信息到 app.config，供下一次请求时使用
-                app.config['FLASH_FLAG'] = {
-                    'message': f"链式计算完成，最终结果为：{decrypted_value:.2f}",
-                    'category': 'success'
+                timestamp = data.get('timestamp')
+                if timestamp:
+                    readable_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    readable_time = '无时间信息'
+
+                # 构造新消息
+                new_message = {
+                    'message': f"链式计算完成，最终结果为：{decrypted_value:.2f}\n时间：{readable_time}",
+                    'category': 'success',
                 }
+
+                # 追加到消息列表中
+                app.config['FLASH_MESSAGES'].append(new_message)
+
+                # 触发广播事件
+                chain = app.config.get('CHAIN_STATE')
+                if not chain:
+                    return
+
+                for sid in chain['websocket_ids']:
+                    print(f"广播最终结果给设备{sid}")
+                    socketio.emit("final_result_broadcast", {
+                        "decrypted_value": round(decrypted_value, 2),
+                        "timestamp": readable_time
+                    }, room=sid)
+
+                app.config.pop('CHAIN_STATE', None)
+
             except Exception as e:
                 print(f"❌ 最终链式结果解密失败: {e}")
-                app.config['FLASH_FLAG'] = {
-                    'message': f"链式计算结果解密失败：{e}",
-                    'category': 'danger'
+                new_message = {
+                    'message': f"最终链式结果解密失败",
+                    'category': 'success',
                 }
+                app.config['FLASH_MESSAGES'].append(new_message)
             return
 
         chain = app.config.get('CHAIN_STATE')
@@ -361,9 +406,11 @@ def register_routes(app,socketio,mail,r, limiter):
                     'final_input': result
                 }, room=chain['websocket_ids'][0])
 
-            # 提示链式计算完成（原始值解密稍后再处理）
-            app.config['FLASH_FLAG'] = {
+            # 构造新消息
+            new_message = {
                 'message': f"链式计算完成，最终结果已加密并返回第一设备等待最终处理。",
-                'category': 'success'
+                'category': 'success',
             }
-            app.config.pop('CHAIN_STATE', None)
+
+            # 追加到消息列表中
+            app.config['FLASH_MESSAGES'].append(new_message)

@@ -1,86 +1,109 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>客户端网站（5001）</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>设备管理后台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 60px;
+        }
+        .header {
+            margin-bottom: 40px;
+            text-align: center;
+            color: #343a40;
+        }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            z-index: 1000;
+        }
+        .device-card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+        }
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            color: #6c757d;
+        }
+    </style>
 </head>
-<body class="bg-light">
-
-<!-- 顶部导航栏 -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
-  <div class="container">
-    <a class="navbar-brand" href="#">客户端网站</a>
-    <div class="ms-auto">
-      <a href="/logout" class="btn btn-outline-danger">注销</a>
+<body>
+    <!-- 右上角按钮组：链式统计 + 注销 -->
+    <div class="logout-btn">
+        <form method="post" action="{{ url_for('start_chain_computation') }}">
+            <button type="submit" class="btn btn-warning btn-sm">链式统计</button>
+        </form>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">注销登录</a>
     </div>
-  </div>
-</nav>
 
-<div class="container py-4">
-  <h1 class="mb-4 text-center">客户端网站 (https://localhost:5001)</h1>
-  <div id="messages" class="mb-3"></div>
-  <div id="form_area" class="card p-3 shadow"></div>
-</div>
+    <div class="container">
 
-<script>
-  let socketId = null;
+        <!-- 🔔 Flash 消息显示区域 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
-  const socket = io('https://localhost:5000', {
-    transports: ['websocket'],
-    secure: true,
-    rejectUnauthorized: false
-  });
+        <h1 class="header">设备管理后台</h1>
 
-  socket.on('connect', () => {
-    socketId = socket.id;
-    const msg = `✅ 已连接到服务器（5000），Socket ID: ${socketId}`;
-    document.getElementById('messages').innerHTML += `<div class="alert alert-success">${msg}</div>`;
-    socket.emit('client_connected', { socket_id: socketId });
-  });
-
-  socket.on('server_message', (data) => {
-    console.log('收到服务器消息:', data.data);
-    document.getElementById('messages').innerHTML += `<div class="alert alert-info">${data.data}</div>`;
-  });
-
-  socket.on('form_request', () => {
-    const formHtml = `
-      <h2>📝 填写统计表单</h2>
-      <form id="statsForm" class="mb-3">
-        <div class="mb-3">
-          <label>姓名</label>
-          <input type="text" name="name" class="form-control" required>
+        <h4 class="mb-4">已上传证书的设备</h4>
+        <div class="row">
+            {% for device in devices %}
+            <div class="col-md-4">
+                <div class="card device-card p-3">
+                    <h5 class="card-title">设备 ID：{{ device.device_id }}</h5>
+                    <p class="card-text">
+                        状态：
+                        {% if device.is_active %}
+                            <span class="text-success">在线</span>
+                        {% else %}
+                            <span class="text-secondary">离线</span>
+                        {% endif %}
+                    </p>
+                    <p class="card-text">
+                        最近心跳：{{ device.last_heartbeat.strftime('%Y-%m-%d %H:%M:%S') if device.last_heartbeat else '无记录' }}
+                    </p>
+                    <p class="card-text text-success">证书已上传</p>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">暂无已上传证书的设备</p>
+            {% endfor %}
         </div>
-        <div class="mb-3">
-          <label>年龄</label>
-          <input type="number" name="age" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label>意见</label>
-          <input type="text" name="feedback" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-primary">提交</button>
-      </form>
-    `;
-    document.getElementById('form_area').innerHTML = formHtml;
 
-    document.getElementById('statsForm').onsubmit = (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const data = Object.fromEntries(formData.entries());
-      data.socket_id = socketId;
-      socket.emit('form_response', data);
-      document.getElementById('form_area').innerHTML = `<div class="alert alert-success">✅ 表单已提交</div>`;
-    };
-  });
+        <footer>
+            &copy; 2025 区域用电管理系统
+        </footer>
+    </div>
 
-  socket.on('disconnect', () => {
-    console.log('❌ 已断开连接');
-    document.getElementById('messages').innerHTML += `<div class="alert alert-danger">❌ 已断开连接</div>`;
-  });
-</script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // 页面加载后自动隐藏 flash 消息
+    window.addEventListener('DOMContentLoaded', function () {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                // 使用 Bootstrap 提供的 dismiss 方法
+                const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                bsAlert.close(); // 相当于点了关闭按钮
+            }, 10000); // 10000毫秒 = 10秒
+        });
+    });
+    </script>
 </body>
 </html>

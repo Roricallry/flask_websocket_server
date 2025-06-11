@@ -1,49 +1,75 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>验证码登录</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>管理员登录 - 设备管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .login-box {
+            max-width: 400px;
+            width: 100%;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .login-box h2 {
+            margin-bottom: 24px;
+            text-align: center;
+            color: #343a40;
+        }
+    </style>
 </head>
-<body class="bg-light">
-  <div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
-    <div class="card shadow p-4" style="width: 360px;">
-      <h3 class="mb-4 text-center">验证码登录</h3>
+<body>
+    <div class="login-box">
+        <h2>管理员登录</h2>
 
-      <!-- Flash 消息 -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+        <!-- 显示 flash 消息 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- 登录表单 -->
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="mb-3">
+                <label for="username" class="form-label">用户名</label>
+                <input type="text" class="form-control" id="username" name="username" required />
             </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <!-- 表单 -->
-      <form method="POST" action="/login">
-  <div class="mb-3">
-    <label for="email" class="form-label">邮箱</label>
-    <input type="email" class="form-control" id="email" name="email" value="{{ request.form.get('email', '') }}" required />
-  </div>
-  <div class="mb-3">
-    <label for="code" class="form-label">验证码</label>
-        <div class="input-group">
-            <input type="text" class="form-control" id="code" name="code" />
-            <input type="hidden" name="action" value="login" />
-        <button class="btn btn-outline-secondary" type="submit" formaction="/send-code" formmethod="post">
-            发送验证码
-        </button>
-</div>
-
-  </div>
-  <button type="submit" class="btn btn-primary w-100">登录</button>
-</form>
+            <div class="mb-3">
+                <label for="password" class="form-label">密码</label>
+                <input type="password" class="form-control" id="password" name="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">登录</button>
+        </form>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 自动关闭 Flash 提示 -->
+    <script>
+        setTimeout(function () {
+            let alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function (alert) {
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+                setTimeout(() => alert.remove(), 500); // 延迟移除元素
+            });
+        }, 1000); // 1秒后开始隐藏
+    </script>
+
+    <!-- 引入 Bootstrap JS（可选） -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

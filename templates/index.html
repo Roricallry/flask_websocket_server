@@ -91,17 +91,86 @@
         </footer>
     </div>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+      const SERVER_URL = 'https://localhost:5000';
+      const DEVICE_ID = 5;
+
+      const socket = io(`${SERVER_URL}?device_id=${DEVICE_ID}`, {
+        transports: ['websocket'],
+        secure: true,
+        rejectUnauthorized: false
+      });
+
+      socket.on('connect', () => {
+        console.log("✅ 已连接服务器");
+      });
+
+      socket.on('middle', function (msg) {
+        console.log("接收到服务器发来的中间消息：", msg);
+        showMessage(msg);
+      });
+
+      // 支持自动换行的消息框
+      function showMessage(message) {
+        const containerId = "message-container";
+        let container = document.getElementById(containerId);
+
+        if (!container) {
+          container = document.createElement("div");
+          container.id = containerId;
+          container.style.position = "fixed";
+          container.style.top = "20px";
+          container.style.right = "20px";
+          container.style.zIndex = "9999";
+          document.body.appendChild(container);
+        }
+
+        const messageBox = document.createElement("div");
+        messageBox.innerHTML = `
+          <div style="
+            background-color: #e9f7fd;
+            border-left: 5px solid #17a2b8;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            color: #333;
+            font-size: 14px;
+            position: relative;
+            min-width: 250px;
+            max-width: 400px;
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+          ">
+            ${message}
+            <button onclick="this.parentElement.remove()" style="
+              position: absolute;
+              top: 5px;
+              right: 10px;
+              background: none;
+              border: none;
+              font-size: 16px;
+              color: #888;
+              cursor: pointer;
+            ">&times;</button>
+          </div>
+        `;
+
+        container.appendChild(messageBox);
+      }
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // 页面加载后自动隐藏 flash 消息
     window.addEventListener('DOMContentLoaded', function () {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(alert => {
             setTimeout(() => {
-                // 使用 Bootstrap 提供的 dismiss 方法
                 const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-                bsAlert.close(); // 相当于点了关闭按钮
-            }, 10000); // 10000毫秒 = 10秒
+                bsAlert.close();
+            }, 10000);
         });
     });
     </script>

@@ -14,7 +14,9 @@ app = Flask(__name__)
 # 允许所有跨域
 app.config.from_object(Config)
 
+from routes import socketio_bp
 socketio = SocketIO(app, cors_allowed_origins="*")
+app.register_blueprint(socketio_bp)
 
 # 初始化
 db.init_app(app)

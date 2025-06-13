@@ -4,7 +4,7 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
 
     # 数据库配置
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'mysql+pymysql://caserver:guet@47.106.143.170:3306/db_server')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'mysql+pymysql://caserver:guet@47.106.143.170:3306/db_server') # you should change this, the ip is invalid now.
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_POOL_SIZE = 10
     SQLALCHEMY_POOL_RECYCLE = 3600
@@ -13,9 +13,9 @@ class Config:
     MAIL_SERVER = 'smtp.qq.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME', '3127902929@qq.com')         # QQ邮箱
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'ryercmtqgmzodfjc')       # SMTP 授权码
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_SENDER', '3127902929@qq.com')     # 发件人
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'xxx@qq.com')         # QQ邮箱
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'x*16')       # SMTP 授权码
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_SENDER', 'xxx@qq.com')     # 发件人
 
     # Redis 配置
     REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
